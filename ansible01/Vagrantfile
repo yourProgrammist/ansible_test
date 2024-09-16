@@ -1,0 +1,87 @@
+Vagrant.configure("2") do |service|
+  service.vm.define "manager" do |config|
+    config.vm.provider "qemu" do |qe|
+      qe.ssh_port = 50000
+    end
+    config.env.enable
+    config.vm.hostname = "manager"
+    config.vm.box = "perk/ubuntu-20.04-arm64"
+    config.vm.provision 'shell', inline: 'echo "vagrant:a" | chpasswd'
+    config.vm.synced_folder "./project", "/vagrant/project", type: "rsync", rsync__auto: true
+    config.vm.provision "shell", inline: <<-SHELL
+      apt-get update && apt-get install -y jq wireguard resolvconf ansible
+      curl -s  \
+      -H "X-Vault-Token: #{ENV['VAULT_TOKEN']}" \
+      -H "Content-Type: application/json" \
+      -X GET \
+      http://#{ENV['SERVER']}:#{ENV['VAULT_PORT']}/v1/secret/data/peer1| jq .data.data.conf | sed 's/"//g' | base64 -d  > /etc/wireguard/wg0.conf 
+      if [ $(ip addr | grep wg0 | wc -c) != 0 ]; 
+      then 
+        wg-quick down wg0
+      fi
+      wg-quick up wg0 
+      if [ $(ip addr | grep wg0 | wc -c) != 0 ]; 
+      then
+        echo "CONNECT TO SECURE NETWORK - SUCCESS"
+      else
+        echo "CONNECT TO SECURE NETWORK - FAILURE"
+      fi
+    SHELL
+  end
+  
+  service.vm.define "worker" do |config|
+    config.vm.provider "qemu" do |qe|
+      qe.ssh_port = 50001
+    end
+    config.vm.box = "perk/ubuntu-20.04-arm64"
+    config.vm.hostname = "node01"
+    config.vm.provision 'shell', inline: 'echo "vagrant:a" | chpasswd'
+    config.vm.provision "shell", inline: <<-SHELL
+      apt-get update && apt-get install -y jq wireguard resolvconf
+      curl -s \
+      -H "X-Vault-Token: #{ENV['VAULT_TOKEN']}" \
+      -H "Content-Type: application/json" \
+      -X GET \
+      http://#{ENV['SERVER']}:#{ENV['VAULT_PORT']}/v1/secret/data/peer2 | jq .data.data.conf | sed 's/"//g' | base64 -d > /etc/wireguard/wg0.conf 
+      if [ $(ip addr | grep wg0 | wc -c) != 0 ]; 
+      then 
+        wg-quick down wg0
+      fi
+      wg-quick up wg0
+      if [ $(ip addr | grep wg0 | wc -c) != 0 ]; 
+      then
+        echo "CONNECT TO SECURE NETWORK - SUCCESS"
+      else
+        echo "CONNECT TO SECURE NETWORK - FAILURE"
+      fi
+    SHELL
+  end
+
+  service.vm.define "worker2" do |config|
+    config.vm.provider "qemu" do |qe|
+      qe.ssh_port = 50002
+    end
+    config.vm.box = "perk/ubuntu-20.04-arm64"
+    config.vm.hostname = "node02"
+    config.vm.provision 'shell', inline: 'echo "vagrant:a" | chpasswd'
+    config.vm.provision "shell", inline: <<-SHELL
+      apt-get update && apt-get install -y jq wireguard resolvconf
+      curl -s \
+      -H "X-Vault-Token: #{ENV['VAULT_TOKEN']}" \
+      -H "Content-Type: application/json" \
+      -X GET \
+      http://#{ENV['SERVER']}:#{ENV['VAULT_PORT']}/v1/secret/data/peer3 | jq .data.data.conf | sed 's/"//g' | base64 -d > /etc/wireguard/wg0.conf 
+      if [ $(ip addr | grep wg0 | wc -c) != 0 ]; 
+      then 
+        wg-quick down wg0
+      fi
+      wg-quick up wg0
+      if [ $(ip addr | grep wg0 | wc -c) != 0 ]; 
+      then
+        echo "CONNECT TO SECURE NETWORK - SUCCESS"
+      else
+        echo "CONNECT TO SECURE NETWORK - FAILURE"
+      fi
+    SHELL
+  end
+end

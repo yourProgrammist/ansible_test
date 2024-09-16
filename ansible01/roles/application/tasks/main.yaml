@@ -1,0 +1,38 @@
+---
+- name: Install packages
+  become: true
+  apt: pkg={{ item }} state=latest update_cache=true
+  with_items:
+    - docker.io
+    - docker-compose
+
+- name: Copy files
+  copy:
+    src: "{{ item }}"
+    dest: "/project/{{ item }}"
+  loop:
+    - nginx.conf
+    - docker-compose.yaml
+    - init.sql
+
+- name: RUN docker-compose up
+  become: true
+  docker_compose:
+    project_src: /home/vagrant/project
+  register: docker_compose_output
+  ignore_errors: yes
+
+- name: Check containers
+  become: true
+  shell: docker ps --filter "status=exited" -q
+  register: exited_containers
+  changed_when: false
+
+- name: Remove containers
+  become: true
+  docker_compose:
+    project_src: /home/vagrant/project
+    build: false
+    stopped: true
+  when: exited_containers.stdout != ""
+  ignore_errors: yes

@@ -1,0 +1,21 @@
+---
+- name: Installs apache web server
+  become: true
+  apt: pkg=apache2 state=latest update_cache=true
+
+- name: Push default virtual host configuration
+  become: true
+  copy: src=files/awesome-app.conf dest=/etc/apache2/sites-available/ mode=0640
+
+- name: Deactivates the default virtualhost
+  become: true
+  command: a2dissite 000-default
+
+- name: Deactivates the default ssl virtualhost
+  command: a2dissite default-ssl
+
+- name: Activates our virtualhost
+  become: true
+  command: a2ensite awesome-app
+  notify:
+    - restart apache
