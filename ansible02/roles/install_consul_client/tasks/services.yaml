@@ -1,0 +1,78 @@
+---
+- name: "deploy postgres.conf"
+  become: true
+  template:
+    src: "templates/postgres_envoy.j2"
+    dest: "/postgres_envoy.json"
+    mode: '0644'
+  when:
+    - services is defined
+    - services.database is defined
+    - services.database.enabled | bool
+
+- name: "register postgres service"
+  become: true
+  environment:
+    CONSUL_HTTP_ADDR: https://127.0.0.1:8501
+    CONSUL_CACERT: "{{ consul_ca_dir }}/ca.crt"
+    CONSUL_CLIENT_CERT: "{{ consul_client_dir }}/client.crt"
+    CONSUL_CLIENT_KEY: "{{ consul_client_dir }}/client.key"
+    CONSUL_HTTP_SSL_VERIFY: false
+  command: consul services register /postgres_envoy.json
+  when: 
+    - services is defined
+    - services.database is defined
+    - services.database.enabled | bool
+
+- name: "Connect envoy"
+  become: true
+  environment:
+    CONSUL_HTTP_ADDR: https://127.0.0.1:8501
+    CONSUL_CACERT: "{{ consul_ca_dir }}/ca.crt"
+    CONSUL_CLIENT_CERT: "{{ consul_client_dir }}/client.crt"
+    CONSUL_CLIENT_KEY: "{{ consul_client_dir }}/client.key"
+    CONSUL_HTTP_SSL_VERIFY: false
+  shell: "nohup consul connect envoy -sidecar-for '{{ services.database.name }}' &"
+  when: 
+    - services is defined
+    - services.database is defined
+    - services.database.enabled | bool
+
+- name: "deploy hotel.conf"
+  become: true
+  template:
+    src: "templates/hotel_envoy.j2"
+    dest: "/hotel_envoy.json"
+    mode: '0644'
+  when:
+    - services is defined
+    - services.hotel is defined
+    - services.hotel.enabled | bool
+
+- name: "register hotel service"
+  become: true
+  environment:
+    CONSUL_HTTP_ADDR: https://127.0.0.1:8501
+    CONSUL_CACERT: "{{ consul_ca_dir }}/ca.crt"
+    CONSUL_CLIENT_CERT: "{{ consul_client_dir }}/client.crt"
+    CONSUL_CLIENT_KEY: "{{ consul_client_dir }}/client.key"
+    CONSUL_HTTP_SSL_VERIFY: false
+  command: consul services register /hotel_envoy.json
+  when: 
+    - services is defined
+    - services.hotel is defined
+    - services.hotel.enabled | bool
+
+- name: "Connect envoy"
+  become: true
+  environment:
+    CONSUL_HTTP_ADDR: https://127.0.0.1:8501
+    CONSUL_CACERT: "{{ consul_ca_dir }}/ca.crt"
+    CONSUL_CLIENT_CERT: "{{ consul_client_dir }}/client.crt"
+    CONSUL_CLIENT_KEY: "{{ consul_client_dir }}/client.key"
+    CONSUL_HTTP_SSL_VERIFY: false
+  shell: "nohup consul connect envoy -sidecar-for '{{ services.hotel.name }}' &"  
+  when: 
+    - services is defined
+    - services.hotel is defined
+    - services.hotel.enabled | bool

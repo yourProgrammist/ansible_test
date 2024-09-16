@@ -1,0 +1,26 @@
+{% if consul_server_name is defined %}
+node_name		        = "{{ consul_server_name }}"
+{% endif %}
+server 			        = {{ 'true' if consule_role == 'server' else 'false' }}
+datacenter		        = "{{ datacenter | default("dc1") }}"
+{% if consule_role == 'server' %}
+bootstrap_expect        = {{ consul_bootstrap_expect | default(2)}}
+{% endif %}
+retry_join              = ["10.13.13.7"]
+data_dir		        = "consul/data"
+log_level		        = "INFO"
+{% raw %}
+advertise_addr 		    = "{{ GetInterfaceIP \"wg0\" }}"
+{% endraw %}
+ui 		    	        = true
+verify_incoming 	    = true
+verify_outgoing 	    = true
+verify_server_hostname  = true
+ca_file 		        = "{{ consul_ca_dir}}/ca.crt"
+cert_file 		        = "{{ consul_client_dir}}/client.crt"
+key_file 		        = "{{ consul_client_dir}}/client.key"
+ports {
+  http                  = -1
+  https                 = 8501
+  grpc_tls 	= 8502
+}

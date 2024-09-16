@@ -1,0 +1,38 @@
+---
+- name: "Copy source code"
+  become: true
+  copy: src=files/hotel-service/ dest=/ mode=0640
+
+- name: "Install openjdk-8-jdk"
+  become: true
+  apt: "pkg=openjdk-8-jdk state=present update_cache=true"
+
+- name: "Install maven"
+  become: true
+  apt: "pkg=maven state=present update_cache=true"
+
+- name: "Maven install depencies"
+  become: true
+  command: mvn -f /hotel/pom.xml dependency:go-offline
+
+- name: "mvn"
+  become: true
+  command: mvn -B package -DskipTests
+  args:
+    chdir: /hotel
+
+- name: "Run app in background"
+  become: true
+  args:
+    chdir: /hotel
+  environment:
+    POSTGRES_HOST: 127.0.0.1
+    POSTGRES_PORT: 9191
+    POSTGRES_DB: "hotels_db"
+    POSTGRES_USER: "app1user"
+    POSTGRES_PASSWORD: "app1user"
+  shell: nohup java -jar ./target/hotel-service-0.0.1-SNAPSHOT.jar > /dev/null 2>&1 & disown
+  async: 1
+  poll: 0
+
+

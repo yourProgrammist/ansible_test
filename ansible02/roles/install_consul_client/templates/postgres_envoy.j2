@@ -1,0 +1,9 @@
+{
+  "service": {
+    "name": "{{ services.database.name }}",
+    "port": {{ services.database.port | int }},
+    "connect": {
+      "sidecar_service": {}
+    }
+  }
+}

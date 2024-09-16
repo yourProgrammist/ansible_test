@@ -1,0 +1,19 @@
+{
+  "service": {
+    "name": "{{ services.hotel.name }}",
+    "port": {{ services.hotel.port | int }},
+    "connect": {
+      "sidecar_service": {
+        "proxy": {
+	  "upstreams":
+	  [
+		  {
+	     "destination_name": "postgres",
+	     "local_bind_port": 9191
+	  }
+	  ]
+	}
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+- hosts: consul_server
+  gather_facts: no
+  roles:
+    - { role: install_consul_server }
+- hosts: db
+  gather_facts: no
+  roles:
+    - role: install_db
+    - role: install_consul_client
+      vars:
+        consul_server_name: "db"
+        services:
+          database:
+            enabled: true
+            name: "postgres"
+            port: 5432
+            istiomeshport: 9191
+- hosts: api
+  gather_facts: no
+  roles:
+    - role: install_consul_client
+    - role: install_hotels_service
+      vars:
+        consul_server_name: "api"
+        services:
+          hotel:
+            enabled: true
+            name: "hotel"
+            port: 8082

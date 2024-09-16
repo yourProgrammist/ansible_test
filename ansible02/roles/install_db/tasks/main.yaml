@@ -1,0 +1,73 @@
+- name: "Install packages"
+  become: true
+  apt: "pkg={{ item }} state=present update_cache=true"
+  with_items:
+    - postgresql
+    - python3-pip
+
+- name: "Install Python packages"
+  become: true
+  command: /usr/bin/python3 -m pip install psycopg2-binary
+
+- name: "Find out if PostgreSQL is initialized"
+  ansible.builtin.stat:
+    path: "/etc/postgresql/12/main/pg_hba.conf"
+  register: postgres_data
+
+- name: "Start and enable services"
+  service: "name={{ item }} state=started enabled=yes"
+  with_items:
+    - postgresql
+
+- name: "Create app database"
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    state: present
+    name: "{{ db_name }}"
+
+- name: "Create db user"
+  postgresql_user:
+    state: present
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+  become: yes
+  become_user: postgres
+
+- name: "Grant db user access to app db"
+  postgresql_privs:
+    type: database
+    database: "{{ db_name }}"
+    roles: "{{ db_user }}"
+    grant_option: no
+    privs: all
+  become: yes
+  become_user: postgres
+
+- name: "Allow md5 connection for the db user from all hosts"
+  postgresql_pg_hba:
+    dest: "/etc/postgresql/12/main/pg_hba.conf"
+    contype: host
+    databases: all
+    method: md5
+    users: "{{ db_user }}"
+    address: "0.0.0.0/0"
+    create: true
+  become: yes
+  become_user: postgres
+  notify: restart postgres
+
+- name: Drop and recreate hotels_db database
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: hotels_db
+    state: absent
+
+- name: Create hotels_db database
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: hotels_db
+    owner: postgres
+    state: present

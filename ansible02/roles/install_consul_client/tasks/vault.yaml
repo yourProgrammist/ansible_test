@@ -1,0 +1,22 @@
+- name: "Fetch secrets from Vault"
+  community.hashi_vault.vault_kv2_get:
+    url: "{{ VAULT_ADDRESS }}"
+    token: "{{ VAULT_TOKEN }}"
+    path: "{{ item.path }}"
+    validate_certs: no
+  register: response
+  loop: "{{ secrets }}"
+  loop_control:
+    loop_var: item
+
+- name: "Write secrets to files"
+  become: true
+  copy:
+    content: "{{ response.results[main_idx | int].data.data[secret_item.1.key] | b64decode }}"
+    dest: "{{ secret_item.1.filename }}"
+    mode: "0600"
+  loop: "{{ secrets | subelements('items') }}"
+  loop_control:
+    loop_var: secret_item
+  vars:
+    main_idx: "{{ secrets.index(secret_item.0) }}"

@@ -1,0 +1,60 @@
+---
+- name: "Copy install file for consul"
+  become: true
+  copy: src=files/consul_install.sh dest=/ mode=0640
+
+- name: "Copy install file for envoy"
+  become: true
+  copy: src=files/envoy_install.sh dest=/ mode=0640
+
+- name: Remove /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  become: true
+  ansible.builtin.file:
+    path: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    state: absent
+
+- name: "Install requirements"
+  include_tasks: requirements.yaml
+
+- name: "Configure TLS certs"
+  include_tasks: certs.yaml
+
+- name: "deploy conf file from template"
+  become: true
+  template:
+    src: templates/consul_server.j2
+    dest: /consul_server.hcl
+    mode: '0644'
+
+- name: "copy consul.service file"
+  become: true
+  copy: src=files/consul.service dest=/etc/systemd/system mode=0640 
+
+- name: Start consul service
+  become: true
+  systemd:
+    name: consul
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Wait for Consul API to become available using curl
+  become: true
+  command: >
+    curl -k https://127.0.0.1:8501/v1/status/leader
+    --cacert {{ consul_ca_dir }}/ca.crt
+    --cert {{ consul_client_dir }}/client.crt
+    --key {{ consul_client_dir }}/client.key
+  register: consul_health_check
+  retries: 10 
+  delay: 2
+  until: "'10.13.13.7:8300' in consul_health_check.stdout"
+  ignore_errors: yes
+
+- name: Fail if Consul API is not available after timeout
+  fail:
+    msg: "Consul API did not become available in time."
+  when: "'10.13.13.7:8300' not in consul_health_check.stdout"
+
+- name: "Connect for services"
+  include_tasks: services.yaml

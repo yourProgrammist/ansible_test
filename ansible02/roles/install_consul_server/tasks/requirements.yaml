@@ -1,0 +1,22 @@
+---
+- name: "Install unzip"
+  become: true
+  apt: "pkg=unzip state=present update_cache=true"
+
+- name: "Install consul"
+  become: true
+  command: /bin/bash /consul_install.sh
+
+- name: "Install packages"
+  become: true
+  apt: "pkg={{ item }} state=present update_cache=true"
+  with_items:
+    - python3-pip
+
+- name: "Install Python packages"
+  become: true
+  command: /usr/bin/python3 -m pip install hvac
+
+- name: "Install hashi_vault"
+  become: true
+  command: ansible-galaxy collection install community.hashi_vault

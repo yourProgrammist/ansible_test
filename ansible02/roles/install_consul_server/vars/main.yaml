@@ -1,0 +1,22 @@
+consul_tls_copy_keys: true
+consul_server_name: "consulserver"
+consul_ca_dir: /etc/consul/ssl/ca-chain
+consul_server_dir: /etc/consul/ssl/server
+consul_user: vagrant
+consul_group: vagrant
+secret_path: "ca-chain"
+consule_role: server
+
+secrets:
+  - path: "ca-chain"
+    items:
+      - key: "crt"
+        filename: "{{ consul_ca_dir }}/ca.crt"
+      - key: "key"
+        filename: "{{ consul_ca_dir }}/ca.key"
+  - path: "server"
+    items:  
+      - key: "crt"
+        filename: "{{ consul_server_dir }}/server.crt"
+      - key: "key"
+        filename: "{{ consul_server_dir }}/server.key"

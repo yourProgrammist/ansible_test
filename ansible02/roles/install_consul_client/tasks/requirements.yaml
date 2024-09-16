@@ -1,0 +1,23 @@
+---
+- name: "Install packages"
+  become: true
+  apt: "pkg={{ item }} state=present update_cache=true"
+  with_items:
+    - python3-pip
+    - unzip
+
+- name: "Install consul"
+  become: true
+  command: /bin/bash /consul_install.sh
+  args:
+    creates: /usr/local/bin/consul
+
+- name: "Install envoy"
+  become: true
+  command: /bin/bash /envoy_install.sh
+  args:
+    creates: /usr/local/bin/envoy
+
+- name: "Install Python packages"
+  become: true
+  command: /usr/bin/python3 -m pip install hvac

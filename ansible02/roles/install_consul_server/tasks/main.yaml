@@ -1,0 +1,36 @@
+---
+- name: "Copy install file for consul"
+  become: true
+  copy: src=files/consul_install.sh dest=/ mode=0640
+
+- name: Remove /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  become: true
+  ansible.builtin.file:
+    path: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    state: absent
+
+- name: "Install requirements"
+  include_tasks: requirements.yaml
+
+
+- name: "Configure TLS certs"
+  include_tasks: certs.yaml
+
+- name: "deploy conf file from template"
+  become: true
+  template:
+    src: templates/consul_server.j2
+    dest: /consul_server.hcl
+    mode: '0644'
+
+- name: "Copy consul.service"
+  become: true
+  copy: src=files/consul.service dest=/etc/systemd/system mode=0640
+
+- name: Start consul service
+  become: true
+  systemd:
+    name: consul
+    state: started
+    enabled: yes
+    daemon_reload: yes

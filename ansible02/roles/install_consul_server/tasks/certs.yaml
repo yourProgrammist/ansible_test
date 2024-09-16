@@ -1,0 +1,20 @@
+---
+
+- name: "Generate CA"
+  when: consul_tls_copy_keys | bool
+  become: true
+  block:
+    - name: "Create SSL-ca directory"
+      ansible.builtin.file:
+        dest: "{{ consul_ca_dir }}"
+        state: directory
+        owner: "{{ consul_user }}"
+        group: "{{ consul_group }}"
+        mode: "0755"
+    - name: "Create SSL-server directory"
+      ansible.builtin.file:
+        dest: "{{ consul_server_dir }}"
+        state: directory
+        mode: "0700"
+- name: "Inject certs"
+  include: vault.yaml
